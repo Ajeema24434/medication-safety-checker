@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Medication Safety Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #e0f7fa, #f4f4f4);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            text-align: center;
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .form-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+        
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .results-section {
+            display: none;
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .results-section.active {
+            display: block;
+        }
+        
+        .item {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 6px solid;
+        }
+        
+        .dangerous {
+            background: #ffcccb;
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+        
+        .caution {
+            background: #ffe0b2;
+            border-left-color: #ff9800;
+            color: #ef6c00;
+        }
+        
+        .safe {
+            background: #c8e6c9;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }
+        
+        .error-message {
+            color: #f44336;
+            background: #ffcccb;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 16px;
+            padding: 15px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .disclaimer {
+            font-style: italic;
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI-Powered Medication Safety Checker</h1>
+            <p>Check drug interactions and dosage safety</p>
+        </header>
+        
+        <div class="form-section">
+            <h2>Enter Your Medications</h2>
+            <form id="medForm">
+                <div class="form-group">
+                    <label for="age">Patient Age (years):</label>
+                    <input type="number" id="age" min="0" max="120" required placeholder="e.g., 45">
+                </div>
+                
+                <div class="form-group">
+                    <label>Drug Names (Enter at least 2):</label>
+                    <input type="text" id="drug1" placeholder="Drug 1 (e.g., Aspirin)" required>
+                    <input type="text" id="drug2" placeholder="Drug 2 (e.g., Warfarin)" required>
+                    <input type="text" id="drug3" placeholder="Drug 3 (Optional)">
+                </div>
+                
+                <div class="form-group">
+                    <label>Doses (Optional, e.g., 500 mg):</label>
+                    <input type="text" id="dose1" placeholder="Dose for Drug 1">
+                    <input type="text" id="dose2" placeholder="Dose for Drug 2">
+                    <input type="text" id="dose3" placeholder="Dose for Drug 3">
+                </div>
+                
+                <button type="submit">Check Safety</button>
+                <div id="formError" class="error-message"></div>
+            </form>
+        </div>
+        
+        <div id="loading" class="loading">Checking medications... Please wait.</div>
+        
+        <div id="results" class="results-section">
+            <h2>Results for Age: <span id="resultAge"></span></h2>
+            
+            <h3>Drug Interactions</h3>
+            <div id="interactionsList"></div>
+            
+            <h3>Dosage Validations</h3>
+            <div id="validationsList"></div>
+            
+            <h3>Generic Alternatives</h3>
+            <div id="genericsList"></div>
+            
+            <div class="disclaimer">
+                <strong>Disclaimer:</strong> This is an educational tool. Always consult a healthcare professional for medical advice.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('medForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formError = document.getElementById('formError');
+            formError.classList.remove('show');
+            formError.textContent = '';
+            
+            const age = parseInt(document.getElementById('age').value);
+            const drug1 = document.getElementById('drug1').value.trim();
+            const drug2 = document.getElementById('drug2').value.trim();
+            const drug3 = document.getElementById('drug3').value.trim();
+            const dose1 = document.getElementById('dose1').value.trim();
+            const dose2 = document.getElementById('dose2').value.trim();
+            const dose3 = document.getElementById('dose3').value.trim();
+            
+            if (!drug1 || !drug2) {
+                formError.textContent = 'Please enter at least 2 drugs.';
+                formError.classList.add('show');
+                return;
+            }
+            
+            if (isNaN(age) || age < 0 || age > 120) {
+                formError.textContent = 'Please enter a valid age.';
+                formError.classList.add('show');
+                return;
+            }
+            
+            const drugs = [drug1, drug2];
+            const doses = [dose1, dose2];
+            if (drug3) {
+                drugs.push(drug3);
+                doses.push(dose3);
+            }
+            
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results').classList.remove('active');
+            
+            try {
+                const response = await fetch('/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ drugs, age, doses })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    formError.textContent = error.error || 'Error checking medications';
+                    formError.classList.add('show');
+                    document.getElementById('loading').classList.remove('show');
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById('resultAge').textContent = data.age;
+                
+                const interactionsList = document.getElementById('interactionsList');
+                interactionsList.innerHTML = '';
+                data.interactions.forEach(interaction => {
+                    const div = document.createElement('div');
+                    div.className = 'item ' + interaction.type;
+                    div.innerHTML = `<strong>${interaction.pair}:</strong> ${interaction.reason}`;
+                    interactionsList.appendChild(div);
+                });
+                
+                const validationsList = document.getElementById('validationsList');
+                validationsList.innerHTML = '';
+                data.validations.forEach((validation, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'item ' + validation.color;
+                    div.innerHTML = `<strong>${drugs[index]} (${doses[index] || 'No dose'}):</strong> ${validation.warning}`;
+                    validationsList.appendChild(div);
+                });
+                
+                const genericsList = document.getElementById('genericsList');
+                genericsList.innerHTML = '';
+                data.generics.forEach((generics, index) => {
+                    const div = document.createElement('div');
+                    if (generics.length > 0) {
+                        div.innerHTML = `<strong>For ${drugs[index]}:</strong><br>`;
+                        generics.forEach(generic => {
+                            div.innerHTML += `- ${generic.name} (Rs.${generic.price}, saves Rs.${generic.savings})<br>`;
+                        });
+                    } else {
+                        div.innerHTML = `<strong>For ${drugs[index]}:</strong> No cheaper alternatives found.`;
+                    }
+                    genericsList.appendChild(div);
+                });
+                
+                document.getElementById('results').classList.add('active');
+                document.getElementById('loading').classList.remove('show');
+                
+            } catch (error) {
+                formError.textContent = 'Error: ' + error.message;
+                formError.classList.add('show');
+                document.getElementById('loading').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
